@@ -11,7 +11,7 @@ const __dirname = path.dirname(__filename);
 const getUser = async (req, res) => {
   const { id } = req.params;
   try {
-    const result = await pool.query("SELECT * FROM usuarios WHERE id = ?", id);
+    const [result] = await pool.query("SELECT * FROM usuarios WHERE id = ?", id);
     console.log(result);
   } catch (error) {
     console.error(error);
@@ -22,7 +22,7 @@ const getUser = async (req, res) => {
 
 const getUsers = async (req, res) => {
   try {
-    const result = await pool.query("SELECT * FROM usuarios ");
+    const [result] = await pool.query("SELECT * FROM usuarios ");
     res.json(result);
   } catch (error) {
     console.error(error);
