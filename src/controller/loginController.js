@@ -1,6 +1,7 @@
 import { pool } from "../Database/database.js";
 import { HASH } from "../config.js";
 import aes from "crypto-js/aes.js";
+import encUtf8 from "crypto-js/enc-utf8.js"
 
 const Login = async (req, res) => {
     console.log(req.body)
