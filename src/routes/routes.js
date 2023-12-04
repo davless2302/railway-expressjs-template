@@ -11,7 +11,7 @@ const imagesRoutes = express.Router();
 
 // Login - Users //
 
-router.post("/login", loginController.Login2); // Devuelve los datos del Usuario si la Autenticacion es Correcta
+router.post("/login", loginController.Login); // Devuelve los datos del Usuario si la Autenticacion es Correcta
 router.get("/account", userControllers.getUsers) // Devuelve Todos los Usuarios Existentes
 router.get("/account/:id", userControllers.getUser) // Devuelve un usuario especifico por ID
 router.post("/account", uploader("users").single("avatar"), userControllers.addUser) // Crea un Nuevo Usuario
