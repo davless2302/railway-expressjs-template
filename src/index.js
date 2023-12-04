@@ -37,7 +37,6 @@ app.use(cors(corsOptions));
 app.use("/", router);
 app.use("/public", imagesRoutes);
 
-
 app.listen(PORT, () => {
   console.log(`Server en el Puerto ${PORT}`);
 });
