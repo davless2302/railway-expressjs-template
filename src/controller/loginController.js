@@ -4,8 +4,7 @@ import aes from "crypto-js/aes.js";
 import encUtf8 from "crypto-js/enc-utf8.js"
 
 const Login = async (req, res) => {
-    console.log(req.body)
-  try {
+     try {
     const key = HASH
     const { username, password } = req.body;
     const u = { username, password };
@@ -13,7 +12,6 @@ const Login = async (req, res) => {
       res.status(401).send("401 || Not authorized");
       return false;
     }
-
     const [result] = await pool.query("SELECT * FROM usuarios ");
     const user = result.find((el) => el.username.toLowerCase() === u.username.toLowerCase());
     if (!user) res.status(404).json({ message: "El Usuario no Existe" });
