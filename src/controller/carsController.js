@@ -128,8 +128,38 @@ const addCar = async (req, res) => {
 
     // Enviar respuesta de éxito
     res.status(200).json({ status: 200, message: "Car added successfully" });
-  } catch (err) {
-    console.error("Error:", err);
+  } catch (error) {
+    if (files) {
+      for (let file of files) {
+        const filePath = path.join(
+          __dirname,
+          "../static/images/cars",
+          file.filename
+        );
+
+        try {
+          await unlink(filePath);
+          console.log(`Archivo eliminado: ${filePath}`);
+        } catch (unlinkError) {
+          console.error(
+            `Error al eliminar el archivo: ${filePath}`,
+            unlinkError
+          );
+        }
+      }
+    }
+    if (error.code === "ER_DUP_ENTRY") {
+      console.log(error);
+      if (error.sqlMessage.includes("placa")) {
+        return res.status(400).json({ message: "Placa en Uso" });
+      } else if (error.sqlMessage.includes("sm")) {
+        return res.status(400).json({ message: "Serial del Motor en Uso" });
+      } else if (error.sqlMessage.includes("sc")) {
+        return res.status(400).json({ message: "Serial del Chasis en Uso" });
+      } else {
+        return res.status(400).json({ message: "Error Desconocido" });
+      }
+    }
     res.status(500).json({ status: 500, message: "Internal Server Error" });
   }
 };
