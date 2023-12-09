@@ -5,7 +5,7 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const MIMETYPES = ["image/jpg", "image/png", "image/jpeg"];
+const MIMETYPES = ["image/jpg", "image/png", "image/jpeg", "application/pdf"];
 
 const uploader = (formName) => {
   return multer({
@@ -21,7 +21,11 @@ const uploader = (formName) => {
     }),
     fileFilter: (req, file, cb) => {
       if (MIMETYPES.includes(file.mimetype)) cb(null, true);
-      else cb(new Error(`Only ${MIMETYPES.join("")} mimetypes are allowed`), false);
+      else
+        cb(
+          new Error(`Only ${MIMETYPES.join("")} mimetypes are allowed`),
+          false
+        );
     },
     limits: { fieldSize: 10000000 },
   });
