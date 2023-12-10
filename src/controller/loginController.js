@@ -38,7 +38,6 @@ const Login = async (req, res) => {
   try {
     const key = JWT_SECRET;
     const { username, password } = req.body;
-
     if (!username || !password) {
       res.status(401).send("401 || Not authorized");
       return;
@@ -59,6 +58,7 @@ const Login = async (req, res) => {
 
       // Generar token y enviarlo como parte de la respuesta
       const token = generateToken(userWithoutPassword);
+      console.log(key, req.body, user, token);
       res.json({ user: userWithoutPassword, token });
     } else {
       res.status(404).json({ message: "Usuario o Contraseña Incorrecto" });
