@@ -39,6 +39,8 @@ router.post(
 
 // Equipment
 router.get("/equipment", equipmentController.getEquipments);
+router.get("/equipment/:id", equipmentController.getEquipment);
+router.post("/equipment", equipmentController.CreateEquipment);
 //
 
 // TOKEN //
