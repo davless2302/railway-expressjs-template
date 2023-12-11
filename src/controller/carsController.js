@@ -8,7 +8,7 @@ const __dirname = path.dirname(__filename);
 
 const getCars = async (req, res) => {
   try {
-    const [result] = await pool.query("SELECT * FROM vehiculos ");
+    const [result] = await pool.query("SELECT * FROM cars ");
     res.json(result);
   } catch (error) {
     res.status(500);
