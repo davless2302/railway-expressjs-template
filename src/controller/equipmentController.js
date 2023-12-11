@@ -1,6 +1,6 @@
 import { pool } from "../Database/database.js";
 
-const getEquipments = async (req, res) => {
+const getEquipmentBefore = async (req, res) => {
   try {
     const [query1] = await pool.query("SELECT * FROM cars ");
     const [query2] = await pool.query("SELECT * FROM choferes ");
@@ -17,10 +17,7 @@ const getEquipments = async (req, res) => {
 const getEquipment = async (req, res) => {
   const { id } = req.params;
   try {
-    const [query1] = await pool.query(
-      "SELECT * FROM vehiculos WHERE id = ?",
-      id
-    );
+    const [query1] = await pool.query("SELECT * FROM equipos WHERE id = ?", id);
     res.json(query1);
   } catch (error) {
     res.status(500);
@@ -28,7 +25,7 @@ const getEquipment = async (req, res) => {
   }
 };
 
-const CreateEquipment = async (req, res) => {
+const createEquipment = async (req, res) => {
   const { chutoID, remolqueID, choferID } = req.body;
 
   if (chutoID === "" || remolqueID === "" || choferID === "") {
@@ -67,8 +64,40 @@ const CreateEquipment = async (req, res) => {
   }
 };
 
+const getEquipments = async (req, res) => {
+  const query = `SELECT
+  e.id AS idEquipo,
+  c.id AS idChuto,
+  c.marca AS marcaChuto,
+  c.model AS modeloChuto,
+  c.year AS yearChuto, 
+  c.color AS colorChuto,
+  c.placa AS placaChuto,
+  c1.id AS idRemolque,
+  c1.marca AS marcaRemolque,
+  c1.model AS modeloRemolque,
+  c1.year AS yearRemolque, 
+  c1.color AS colorRemolque,
+  ch.id AS idChofer,
+  ch.cedula AS cedulaChofer,
+  ch.fullName AS nombreChofer,
+  ch.tlf AS tlfChofer
+FROM
+  equipos AS e
+INNER JOIN
+  cars AS c ON e.idVehiculo = c.id
+INNER JOIN
+  cars AS c1 ON e.idRemolque = c1.id
+INNER JOIN
+  choferes AS ch ON e.idChofer = ch.id
+  `;
+  const [result] = await pool.query(query);
+  res.status(200).json(result);
+};
+
 export const methods = {
-  getEquipments,
+  getEquipmentBefore,
   getEquipment,
-  CreateEquipment,
+  createEquipment,
+  getEquipments,
 };

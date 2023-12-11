@@ -38,9 +38,17 @@ router.post(
 // END Cars //
 
 // Equipment
-router.get("/equipment", equipmentController.getEquipments);
+router.get("/equipment", equipmentController.getEquipmentBefore);
+
+// Obtener equipos activos
+router.get("/equipment/active", equipmentController.getEquipments);
+
+// Obtener información de un equipo específico
 router.get("/equipment/:id", equipmentController.getEquipment);
-router.post("/equipment", equipmentController.CreateEquipment);
+
+// Crear un nuevo equipo
+router.post("/equipment", equipmentController.createEquipment);
+
 //
 
 // TOKEN //
