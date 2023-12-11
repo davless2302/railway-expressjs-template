@@ -28,7 +28,7 @@ const generateToken = (user) => {
   };
 
   const options = {
-    expiresIn: "1h", // Puedes ajustar la duración del token
+    expiresIn: "12h", // Puedes ajustar la duración del token
   };
 
   return jwt.sign(payload, JWT_SECRET, options);

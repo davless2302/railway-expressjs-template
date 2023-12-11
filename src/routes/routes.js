@@ -5,6 +5,8 @@ import { fileURLToPath } from "url";
 import { methods as loginController } from "../controller/loginController.js";
 import { methods as userControllers } from "../controller/userControllers.js";
 import { methods as carsControllers } from "../controller/carsController.js";
+import { methods as tokenControllers } from "../controller/tokenController.js";
+import { methods as equipmentController } from "../controller/equipmentController.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const router = express.Router();
@@ -34,6 +36,14 @@ router.post(
 ); // Devueve los Datos de un Vehiculo en especifico
 
 // END Cars //
+
+// Equipment
+router.get("/equipment", equipmentController.getEquipments);
+//
+
+// TOKEN //
+
+router.post("/refreshToken", tokenControllers.RefreshToken); // Refrescar el Token
 
 // Routers - Images - Public //
 
