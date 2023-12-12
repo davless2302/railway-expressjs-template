@@ -1,5 +1,10 @@
 import { pool } from "../Database/database.js";
+import { unlink } from "fs/promises"; // Use fs.promises for promises-based API
+import path from "path";
+import { fileURLToPath } from "url";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const getEquipmentBefore = async (req, res) => {
   try {
     const [query1] = await pool.query("SELECT * FROM cars ");
@@ -67,6 +72,7 @@ const createEquipment = async (req, res) => {
 const getEquipments = async (req, res) => {
   const query = `SELECT
   e.id AS idEquipo,
+  e.estado as estadoEquipo,
   c.id AS idChuto,
   c.marca AS marcaChuto,
   c.model AS modeloChuto,
@@ -95,9 +101,119 @@ INNER JOIN
   res.status(200).json(result);
 };
 
+const addDriver = async (req, res) => {
+  const { cedula, fullName, address, tlf, gender, birthdate } = req.body;
+  const files = req.files || null;
+
+  const deleteFiles = async (files) => {
+    if (files && files.length > 0) {
+      for (let file of files) {
+        const filePath = path.join(
+          __dirname,
+          "../static/images/drivers",
+          file.filename
+        );
+
+        try {
+          await unlink(filePath);
+          console.log(`Archivo eliminado: ${filePath}`);
+        } catch (unlinkError) {
+          console.error(
+            `Error al eliminar el archivo: ${filePath}`,
+            unlinkError
+          );
+        }
+      }
+    }
+  };
+
+  try {
+    let sql = "";
+    let values = [];
+
+    // Verificar campos obligatorios
+    if (!cedula || !fullName || !address || !tlf || !gender || !birthdate) {
+      await deleteFiles(files);
+      return res.status(400).json({
+        status: 400,
+        message: "Bad Request - Missing required fields",
+      });
+    }
+
+    // Verificar la presencia de archivos
+    const images = files
+      ? files.filter((el) => el.fieldname === "imagen")
+      : null;
+    const documents = files
+      ? files.filter((el) => el.fieldname !== "imagen")
+      : null;
+    const filesNames = documents
+      ? documents.map((el) => el.filename).join(",")
+      : null;
+
+    // Construir la sentencia SQL solo si no se sube ningún archivo
+    if (
+      !files ||
+      (images && images.length === 0 && documents && documents.length === 0)
+    ) {
+      sql = `
+        INSERT INTO choferes (cedula, fullName, address, tlf, gender, birthdate )
+        VALUES (?, ?, ?, ?, ?, ?)
+      `;
+      values = [cedula, fullName, address, tlf, gender, birthdate];
+
+      const result = await pool.execute(sql, values);
+
+      // Enviar respuesta de éxito
+      return res
+        .status(200)
+        .json({ status: 200, message: "Conductor Ingresado Exitosamente" });
+    }
+
+    // Construir la sentencia SQL si se suben archivos
+    sql = `
+      INSERT INTO choferes (cedula, fullName, address, tlf, gender, birthdate, imagen, documents)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+    values = [
+      cedula,
+      fullName,
+      address,
+      tlf,
+      gender,
+      birthdate,
+      images ? images[0].filename : null,
+      filesNames ? filesNames : null,
+    ];
+
+    const result = await pool.execute(sql, values);
+
+    // Enviar respuesta de éxito
+    res
+      .status(200)
+      .json({ status: 200, message: "Conductor Ingresado Exitosamente" });
+  } catch (error) {
+    await deleteFiles(files);
+    console.log(error);
+    if (error.code === "ER_DUP_ENTRY") {
+      let errorMessage;
+      if (error.sqlMessage.includes("cedula")) {
+        errorMessage = "Cédula en Uso";
+      } else {
+        errorMessage = "Error Desconocido";
+      }
+
+      return res.status(400).json({ message: errorMessage });
+    }
+
+    res.status(500).json({ status: 500, message: "Internal Server Error" });
+  }
+};
+
 export const methods = {
   getEquipmentBefore,
   getEquipment,
   createEquipment,
   getEquipments,
+  addDriver,
 };

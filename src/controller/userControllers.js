@@ -56,11 +56,9 @@ const addUser = async (req, res) => {
           path.join(__dirname, "../static/images/users", file.filename)
         );
       }
-      return res
-        .status(400)
-        .json({
-          message: "Bad Request: Por favor, complete todos los campos.",
-        });
+      return res.status(400).json({
+        message: "Bad Request: Por favor, complete todos los campos.",
+      });
     }
 
     const avatar = file ? file.filename : null;
@@ -106,9 +104,13 @@ const addUser = async (req, res) => {
     return res.status(500).json({ message: error.message });
   }
 };
+const addGeo = async (req, res) => {
+  console.log(req.body);
+};
 
 export const methods = {
   getUser,
   getUsers,
   addUser,
+  addGeo,
 };

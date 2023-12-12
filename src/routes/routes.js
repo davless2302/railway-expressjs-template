@@ -38,22 +38,25 @@ router.post(
 // END Cars //
 
 // Equipment
-router.get("/equipment", equipmentController.getEquipmentBefore);
-
-// Obtener equipos activos
-router.get("/equipment/active", equipmentController.getEquipments);
-
-// Obtener información de un equipo específico
-router.get("/equipment/:id", equipmentController.getEquipment);
-
-// Crear un nuevo equipo
-router.post("/equipment", equipmentController.createEquipment);
+router.get("/equipment", equipmentController.getEquipmentBefore); // Devuelve todos los Vehiculos y Choferes existentes
+router.get("/equipment/active", equipmentController.getEquipments); // Devuelve todos los Equipos Activos
+router.get("/equipment/:id", equipmentController.getEquipment); // Devuelve un equipo en especifico
+router.post("/equipment", equipmentController.createEquipment); // Crear un nuevo equipo
+router.post(
+  "/drivers",
+  uploader("drivers").any("imagen", "files"),
+  equipmentController.addDriver
+); // Crea un Nuevo Conductor
 
 //
 
 // TOKEN //
 
 router.post("/refreshToken", tokenControllers.RefreshToken); // Refrescar el Token
+//
+
+// GEO //
+router.post("/geo", userControllers.addGeo);
 
 // Routers - Images - Public //
 
@@ -64,6 +67,10 @@ imagesRoutes.use(
 imagesRoutes.use(
   "/users",
   express.static(join(__dirname, "../static/images/users"))
+);
+imagesRoutes.use(
+  "/cars",
+  express.static(join(__dirname, "../static/images/cars"))
 );
 
 // END Routers - Images - Public //
