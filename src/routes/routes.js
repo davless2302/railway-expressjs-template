@@ -7,6 +7,7 @@ import { methods as userControllers } from "../controller/userControllers.js";
 import { methods as carsControllers } from "../controller/carsController.js";
 import { methods as tokenControllers } from "../controller/tokenController.js";
 import { methods as equipmentController } from "../controller/equipmentController.js";
+import { methods as GuideController } from "../controller/GuideController.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const router = express.Router();
@@ -58,6 +59,16 @@ router.post("/refreshToken", tokenControllers.RefreshToken); // Refrescar el Tok
 // GEO //
 router.post("/geo", userControllers.addGeo);
 router.post("/getGeo/", userControllers.getGeo);
+
+//
+
+// Guide //
+
+router.post(
+  "/CreateGuide",
+  uploader("guide").any("files"),
+  GuideController.addGuide
+);
 
 // Routers - Images - Public //
 
