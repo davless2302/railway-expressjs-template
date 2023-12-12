@@ -57,6 +57,7 @@ router.post("/refreshToken", tokenControllers.RefreshToken); // Refrescar el Tok
 
 // GEO //
 router.post("/geo", userControllers.addGeo);
+router.post("/getGeo/", userControllers.getGeo);
 
 // Routers - Images - Public //
 

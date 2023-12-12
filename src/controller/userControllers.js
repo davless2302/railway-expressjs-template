@@ -105,7 +105,61 @@ const addUser = async (req, res) => {
   }
 };
 const addGeo = async (req, res) => {
-  console.log(req.body);
+  const { lat, lng, userID } = req.body;
+
+  try {
+    // Realizar la consulta SQL de actualización
+    const updateQuery = `
+      UPDATE usuarios
+      SET ubicacion = POINT(?, ?)
+      WHERE id = ?;
+    `;
+
+    const [result] = await pool.execute(updateQuery, [lat, lng, userID]);
+    // Verificar si la actualización fue exitosa
+    if (result.affectedRows > 0) {
+      return res
+        .status(200)
+        .json({ status: 200, message: "Ubicación actualizada con éxito" });
+    } else {
+      return res
+        .status(404)
+        .json({ status: 404, message: "Usuario no encontrado" });
+    }
+  } catch (error) {
+    console.error("Error al actualizar la ubicación:", error);
+    return res
+      .status(500)
+      .json({ status: 500, message: "Error interno del servidor" });
+  }
+};
+const getGeo = async (req, res) => {
+  const { id } = req.body; // Asumiendo que el ID del usuario está en los parámetros de la solicitud
+  try {
+    // Realizar la consulta SQL para obtener la ubicación del usuario
+    const query = `
+      SELECT ST_X(ubicacion) AS lat, ST_Y(ubicacion) AS lng
+      FROM usuarios
+      WHERE id = ?;
+    `;
+
+    const [result] = await pool.execute(query, [id]);
+
+    // Verificar si se encontró el usuario y la ubicación
+    if (result.length > 0) {
+      const { lat, lng } = result[0];
+      return res.status(200).json({ lat, lng });
+    } else {
+      return res
+        .status(404)
+        .json({ status: 404, message: "Usuario no encontrado" });
+    }
+  } catch (error) {
+    console.error("Error al obtener la ubicación:", error);
+    return res
+      .status(500)
+      .json({ status: 500, message: "Error interno del servidor" });
+  }
 };
 
 export const methods = {
@@ -113,4 +167,5 @@ export const methods = {
   getUsers,
   addUser,
   addGeo,
+  getGeo,
 };
