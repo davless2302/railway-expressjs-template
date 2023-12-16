@@ -63,7 +63,7 @@ router.post("/getGeo/", userControllers.getGeo);
 //
 
 // Guide //
-
+router.get("/guide/all", GuideController.getGuideAll);
 router.post(
   "/CreateGuide",
   uploader("guide").any("files"),
