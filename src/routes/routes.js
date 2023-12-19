@@ -64,10 +64,16 @@ router.post("/getGeo/", userControllers.getGeo);
 
 // Guide //
 router.get("/guide/all", GuideController.getGuideAll);
+router.get("/guide/:id", GuideController.getGuide);
 router.post(
   "/CreateGuide",
   uploader("guide").any("files"),
   GuideController.addGuide
+);
+router.put(
+  "/UpdateGuide",
+  uploader("guide").any("files"),
+  GuideController.UpdateGuide
 );
 
 // Routers - Images - Public //
