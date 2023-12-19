@@ -186,6 +186,7 @@ const getGuide = async (req, res) => {
 const UpdateGuide = async (req, res) => {
   const { estado } = req.body;
   if (estado === "P") {
+    console.log(req.body);
     const { nGuia, fechaSalida } = req.body;
     const files = req.files ? req.files : null;
     try {
