@@ -68,12 +68,12 @@ router.get("/guide/all", GuideController.getGuideAll);
 router.get("/guide/:id", GuideController.getGuide);
 router.post(
   "/CreateGuide",
-  uploader("guide").any("files"),
+  uploader("guide", { keepOriginalName: true }).any("files"),
   GuideController.addGuide
 );
 router.put(
   "/UpdateGuide",
-  uploader("guide").any("files"),
+  uploader("guide", { keepOriginalName: true }).any("files"),
   GuideController.UpdateGuide
 );
 
@@ -100,6 +100,10 @@ imagesRoutes.use(
 imagesRoutes.use(
   "/cars",
   express.static(join(__dirname, "../static/images/cars"))
+);
+imagesRoutes.use(
+  "/guide",
+  express.static(join(__dirname, "../static/images/guide"))
 );
 
 // END Routers - Images - Public //

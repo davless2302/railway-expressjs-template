@@ -7,7 +7,7 @@ const __dirname = dirname(__filename);
 
 const MIMETYPES = ["image/jpg", "image/png", "image/jpeg", "application/pdf"];
 
-const uploader = (formName) => {
+const uploader = (formName, options = {}) => {
   return multer({
     storage: multer.diskStorage({
       destination: (req, file, cb) => {
@@ -15,8 +15,16 @@ const uploader = (formName) => {
         cb(null, destination);
       },
       filename: (req, file, cb) => {
-        const fileExtension = extname(file.originalname);
-        cb(null, `imagen_${Date.now()}${fileExtension}`);
+        if (options.keepOriginalName) {
+          // Si se quiere mantener el nombre original, generar un nombre único y agregar el nombre original
+          const uniqueFilename = `imagen_${Date.now()}`;
+          const fileExtension = extname(file.originalname);
+          cb(null, `${uniqueFilename}.${file.originalname}`);
+        } else {
+          // Generar un nuevo nombre con la marca de tiempo
+          const fileExtension = extname(file.originalname);
+          cb(null, `imagen_${Date.now()}${fileExtension}`);
+        }
       },
     }),
     fileFilter: (req, file, cb) => {

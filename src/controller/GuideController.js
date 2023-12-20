@@ -170,7 +170,7 @@ const addGuide = async (req, res) => {
 const getGuideAll = async (req, res) => {
   try {
     const [result] = await pool.query(
-      "SELECT c.id, c.nGuia, c.fechaCarga, c.tipoCarga, c.cantidad, c.costo, c.estado, c.Equipo, cl.alias AS client FROM carga AS c INNER JOIN clients AS cl ON c.idClient = cl.id  "
+      "SELECT c.id, c.nGuia, c.fechaCarga, c.tipoCarga, c.cantidad, c.costo, c.estado, c.Equipo, cl.alias AS client FROM carga AS c INNER JOIN clients AS cl ON c.idClient = cl.id"
     );
     res.json(result);
   } catch (error) {
@@ -182,7 +182,7 @@ const getGuide = async (req, res) => {
   const { id } = req.params;
   try {
     const [result] = await pool.query(
-      `SELECT * FROM carga WHERE nGuia = ${id} `
+      `SELECT c.id, c.nGuia, c.fechaCarga, c.fechaSalida, c.fechaLlegada, c.tipoCarga, c.cantidad, c.salida, c.destino,kmRuta, kmEquipo, kmEquipoDestino, combustible, pCombustible, CombustibleDestino, cPeajes, pPeajes, viaticos , documents,  c.costo, c.estado, c.Equipo, cl.alias AS client FROM carga AS c INNER JOIN clients AS cl ON c.idClient = cl.id WHERE c.nGuia = ${id} `
     );
     // console.log(result);
     res.json(result);
@@ -311,9 +311,12 @@ const UpdateGuide = async (req, res) => {
       const [result2] = await pool.query(query2, [result[0].idVehiculo]);
 
       if (kmDestino < result2[0].km) {
-        return res
-          .status(400)
-          .json({ message: "El Kilometraje es Menor al Ingresado en Sistema" });
+        return res.status(400).json({
+          message:
+            "El Kilometraje es Menor al Ingresado en Sistema (" +
+            result2[0].km +
+            "km)",
+        });
       }
 
       // Actualizar la base de datos con los documentos y otros datos
