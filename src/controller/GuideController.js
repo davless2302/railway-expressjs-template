@@ -169,7 +169,9 @@ const addGuide = async (req, res) => {
 
 const getGuideAll = async (req, res) => {
   try {
-    const [result] = await pool.query("SELECT * FROM carga");
+    const [result] = await pool.query(
+      "SELECT c.id, c.nGuia, c.fechaCarga, c.tipoCarga, c.cantidad, c.costo, c.estado, c.Equipo, cl.alias AS client FROM carga AS c INNER JOIN clients AS cl ON c.idClient = cl.id  "
+    );
     res.json(result);
   } catch (error) {
     console.log(error);
