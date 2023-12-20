@@ -8,6 +8,7 @@ import { methods as carsControllers } from "../controller/carsController.js";
 import { methods as tokenControllers } from "../controller/tokenController.js";
 import { methods as equipmentController } from "../controller/equipmentController.js";
 import { methods as GuideController } from "../controller/GuideController.js";
+import { methods as ClientController } from "../controller/ClientController.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const router = express.Router();
@@ -74,6 +75,16 @@ router.put(
   "/UpdateGuide",
   uploader("guide").any("files"),
   GuideController.UpdateGuide
+);
+
+// Clients
+
+router.get("/Clients", ClientController.getClients);
+router.get("/Clients/:id", ClientController.getClient);
+router.post(
+  "/Clients",
+  uploader("clients").single("logo"),
+  ClientController.addClient
 );
 
 // Routers - Images - Public //

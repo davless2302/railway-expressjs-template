@@ -22,6 +22,7 @@ const addGuide = async (req, res) => {
     viaticos,
     fuel,
     fuelPayment,
+    client,
   } = req.body;
   const files = req.files || null;
 
@@ -64,6 +65,7 @@ const addGuide = async (req, res) => {
       quantity,
       materialType,
       equipment,
+      client,
     ];
 
     if (requiredFields.some((field) => !field)) {
@@ -89,37 +91,11 @@ const addGuide = async (req, res) => {
     const pCombustible = fuelPayment;
     const costoValue = costo;
     const cantidad = quantity;
+    const idClient = client;
 
     if (!files || (files && files.length === 0)) {
       sql = `
-        INSERT INTO carga (nGuia, fechaCarga, tipoCarga, kmRuta, kmEquipo, Equipo, combustible, destino, salida ,idEquipo, pCombustible, costo, cPeajes, pPeajes, viaticos, cantidad)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `;
-      values = [
-        nGuia,
-        fechaCarga,
-        tipoCarga,
-        kmRuta,
-        kmEquipo,
-        Equipo,
-        combustible,
-        destino,
-        salida,
-        idEquipo,
-        pCombustible,
-        costoValue,
-        cPeajes,
-        pPeajes,
-        viaticos,
-        cantidad,
-      ];
-    }
-
-    // Construir la sentencia SQL si se suben archivos
-    // Ajusta los nombres de las columnas de archivos según sea necesario
-    if (files && files.length > 0) {
-      sql = `
-        INSERT INTO carga (nGuia, fechaCarga, tipoCarga, kmRuta, kmEquipo, Equipo, combustible, destino, salida ,idEquipo, pCombustible, costo, cPeajes, pPeajes,viaticos, cantidad, documents)
+        INSERT INTO carga (nGuia, fechaCarga, tipoCarga, kmRuta, kmEquipo, Equipo, combustible, destino, salida ,idEquipo, pCombustible, costo, cPeajes, pPeajes, viaticos, cantidad, idClient)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
       values = [
@@ -139,7 +115,36 @@ const addGuide = async (req, res) => {
         pPeajes,
         viaticos,
         cantidad,
+        idClient,
+      ];
+    }
+
+    // Construir la sentencia SQL si se suben archivos
+    // Ajusta los nombres de las columnas de archivos según sea necesario
+    if (files && files.length > 0) {
+      sql = `
+        INSERT INTO carga (nGuia, fechaCarga, tipoCarga, kmRuta, kmEquipo, Equipo, combustible, destino, salida ,idEquipo, pCombustible, costo, cPeajes, pPeajes,viaticos, cantidad, documents, idClient)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)
+      `;
+      values = [
+        nGuia,
+        fechaCarga,
+        tipoCarga,
+        kmRuta,
+        kmEquipo,
+        Equipo,
+        combustible,
+        destino,
+        salida,
+        idEquipo,
+        pCombustible,
+        costoValue,
+        cPeajes,
+        pPeajes,
+        viaticos,
+        cantidad,
         files.map((file) => file.filename).join(","),
+        idClient,
       ];
     }
 
