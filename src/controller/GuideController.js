@@ -189,64 +189,64 @@ const UpdateGuide = async (req, res) => {
     console.log(req.body);
     const { nGuia, fechaSalida } = req.body;
     const files = req.files ? req.files : null;
-    try {
-      const deleteFiles = async (files) => {
-        if (files && files.length > 0) {
-          for (let file of files) {
-            const filePath = path.join(
-              __dirname,
-              "../static/images/guide",
-              file.filename
-            );
+    // try {
+    //   const deleteFiles = async (files) => {
+    //     if (files && files.length > 0) {
+    //       for (let file of files) {
+    //         const filePath = path.join(
+    //           __dirname,
+    //           "../static/images/guide",
+    //           file.filename
+    //         );
 
-            try {
-              await unlink(filePath);
-              console.log(`Archivo eliminado: ${filePath}`);
-            } catch (unlinkError) {
-              console.error(
-                `Error al eliminar el archivo: ${filePath}`,
-                unlinkError
-              );
-            }
-          }
-        }
-      };
+    //         try {
+    //           await unlink(filePath);
+    //           console.log(`Archivo eliminado: ${filePath}`);
+    //         } catch (unlinkError) {
+    //           console.error(
+    //             `Error al eliminar el archivo: ${filePath}`,
+    //             unlinkError
+    //           );
+    //         }
+    //       }
+    //     }
+    //   };
 
-      if (!nGuia || !fechaSalida) {
-        if (files) {
-          await deleteFiles(files);
-        }
-        return res.status(400).json({ message: "Solicitud incorrecta" });
-      }
+    //   if (!nGuia || !fechaSalida) {
+    //     if (files) {
+    //       await deleteFiles(files);
+    //     }
+    //     return res.status(400).json({ message: "Solicitud incorrecta" });
+    //   }
 
-      // Obtener los documentos actuales de la base de datos
-      const selectSql = "SELECT documents FROM carga WHERE nGuia = ?";
-      const [currentDocuments] = await pool.query(selectSql, [nGuia]);
+    //   // Obtener los documentos actuales de la base de datos
+    //   const selectSql = "SELECT documents FROM carga WHERE nGuia = ?";
+    //   const [currentDocuments] = await pool.query(selectSql, [nGuia]);
 
-      let combinedDocuments = currentDocuments[0].documents;
+    //   let combinedDocuments = currentDocuments[0].documents;
 
-      // Agregar nuevos documentos solo si hay archivos
-      if (files && files.length > 0) {
-        combinedDocuments = combinedDocuments
-          ? combinedDocuments.concat(
-              ",",
-              files.map((file) => file.filename)
-            )
-          : files.map((file) => file.filename).join(",");
-      }
-      // Actualizar la base de datos con los documentos combinados
-      const updateSql =
-        "UPDATE carga SET fechaSalida = ?, documents = ?, estado = 'O' WHERE nGuia = ?";
-      await pool.query(updateSql, [fechaSalida, combinedDocuments, nGuia]);
+    //   // Agregar nuevos documentos solo si hay archivos
+    //   if (files && files.length > 0) {
+    //     combinedDocuments = combinedDocuments
+    //       ? combinedDocuments.concat(
+    //           ",",
+    //           files.map((file) => file.filename)
+    //         )
+    //       : files.map((file) => file.filename).join(",");
+    //   }
+    //   // Actualizar la base de datos con los documentos combinados
+    //   const updateSql =
+    //     "UPDATE carga SET fechaSalida = ?, documents = ?, estado = 'O' WHERE nGuia = ?";
+    //   await pool.query(updateSql, [fechaSalida, combinedDocuments, nGuia]);
 
-      res.status(200).json({ message: "Guía actualizada correctamente" });
-    } catch (error) {
-      console.log(error);
-      if (files) {
-        await deleteFiles(files);
-      }
-      return res.status(500).json({ message: "Internal Server Error" });
-    }
+    //   res.status(200).json({ message: "Guía actualizada correctamente" });
+    // } catch (error) {
+    //   console.log(error);
+    //   if (files) {
+    //     await deleteFiles(files);
+    //   }
+    //   return res.status(500).json({ message: "Internal Server Error" });
+    // }
   } else if (estado === "O") {
     const { nGuia, fechaLlegada, kmDestino, CombustibleDestino } = req.body;
     const files = req.files || null;
