@@ -23,9 +23,11 @@ const addGuide = async (req, res) => {
     fuel,
     fuelPayment,
     client,
+    conductor,
+    pConductor,
   } = req.body;
   const files = req.files || null;
-
+  console.log(equipment.split("|")[0]);
   const deleteFiles = async (files) => {
     if (files && files.length > 0) {
       for (let file of files) {
@@ -66,6 +68,8 @@ const addGuide = async (req, res) => {
       materialType,
       equipment,
       client,
+      conductor,
+      pConductor,
     ];
 
     if (requiredFields.some((field) => !field)) {
@@ -84,10 +88,10 @@ const addGuide = async (req, res) => {
     const tipoCarga = materialType;
     const kmRuta = kmRoute;
     const kmEquipo = km;
-    const idEquipo = equipment;
+    const idEquipo = equipment.split("|")[1];
     const combustible = fuel;
     const destino = destination;
-    const Equipo = "FJC" + equipment;
+    const Equipo = equipment.split("|")[0];
     const pCombustible = fuelPayment;
     const costoValue = costo;
     const cantidad = quantity;
@@ -95,8 +99,8 @@ const addGuide = async (req, res) => {
 
     if (!files || (files && files.length === 0)) {
       sql = `
-        INSERT INTO carga (nGuia, fechaCarga, tipoCarga, kmRuta, kmEquipo, Equipo, combustible, destino, salida ,idEquipo, pCombustible, costo, cPeajes, pPeajes, viaticos, cantidad, idClient)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO carga (nGuia, fechaCarga, tipoCarga, kmRuta, kmEquipo, Equipo, combustible, destino, salida ,idEquipo, pCombustible, costo, cPeajes, pPeajes, viaticos, cantidad, idClient, idConductor, pagoConductor)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
       values = [
         nGuia,
@@ -116,6 +120,8 @@ const addGuide = async (req, res) => {
         viaticos,
         cantidad,
         idClient,
+        conductor,
+        pConductor,
       ];
     }
 
@@ -123,8 +129,8 @@ const addGuide = async (req, res) => {
     // Ajusta los nombres de las columnas de archivos según sea necesario
     if (files && files.length > 0) {
       sql = `
-        INSERT INTO carga (nGuia, fechaCarga, tipoCarga, kmRuta, kmEquipo, Equipo, combustible, destino, salida ,idEquipo, pCombustible, costo, cPeajes, pPeajes,viaticos, cantidad, documents, idClient)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)
+        INSERT INTO carga (nGuia, fechaCarga, tipoCarga, kmRuta, kmEquipo, Equipo, combustible, destino, salida ,idEquipo, pCombustible, costo, cPeajes, pPeajes,viaticos, cantidad, documents, idClient, idConductor, pagoConductor)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?, ?, ?)
       `;
       values = [
         nGuia,
@@ -145,6 +151,8 @@ const addGuide = async (req, res) => {
         cantidad,
         files.map((file) => file.filename).join(","),
         idClient,
+        conductor,
+        pConductor,
       ];
     }
 
@@ -170,7 +178,7 @@ const addGuide = async (req, res) => {
 const getGuideAll = async (req, res) => {
   try {
     const [result] = await pool.query(
-      "SELECT c.id, c.nGuia, c.fechaCarga, c.tipoCarga, c.cantidad, c.costo, c.estado, c.Equipo, cl.alias AS client FROM carga AS c INNER JOIN clients AS cl ON c.idClient = cl.id"
+      "SELECT c.id, c.nGuia, c.fechaCarga, c.tipoCarga, c.cantidad, c.costo, c.estado, c.Equipo, cl.razonSocial AS client FROM carga AS c INNER JOIN clients AS cl ON c.idClient = cl.id"
     );
     res.json(result);
   } catch (error) {
@@ -182,7 +190,7 @@ const getGuide = async (req, res) => {
   const { id } = req.params;
   try {
     const [result] = await pool.query(
-      `SELECT c.id, c.nGuia, c.fechaCarga, c.fechaSalida, c.fechaLlegada, c.tipoCarga, c.cantidad, c.salida, c.destino,kmRuta, kmEquipo, kmEquipoDestino, combustible, pCombustible, CombustibleDestino, cPeajes, pPeajes, viaticos , documents,  c.costo, c.estado, c.Equipo, cl.alias AS client FROM carga AS c INNER JOIN clients AS cl ON c.idClient = cl.id WHERE c.nGuia = ${id} `
+      `SELECT c.id, c.nGuia, c.fechaCarga, c.fechaSalida, c.fechaLlegada, c.tipoCarga, c.cantidad, c.otros, c.salida, c.destino, c.kmRuta, c.kmEquipo, c.kmEquipoDestino, c.combustible, c.pCombustible, c.CombustibleDestino, cPeajes, pPeajes, c.viaticos , c.documents,  c.costo, c.estado, c.Equipo, c.pagoConductor, cl.alias as ClientPerson ,  cl.razonSocial AS client, cl.phone, cf.fullName AS conductor, cf.tlf AS tlfConductor FROM carga AS c INNER JOIN clients AS cl ON c.idClient = cl.id INNER JOIN choferes AS cf ON c.idConductor = cf.id WHERE c.nGuia= ${id} `
     );
     // console.log(result);
     res.json(result);
@@ -193,7 +201,8 @@ const getGuide = async (req, res) => {
 const UpdateGuide = async (req, res) => {
   const { estado } = req.body;
   if (estado === "P") {
-    const { nGuia, fechaSalida } = req.body;
+    const { nGuia, fechaSalida, combustible, peaje, viaticos, otros, nota } =
+      req.body;
     const files = req.files ? req.files : null;
     try {
       const deleteFiles = async (files) => {
@@ -226,10 +235,19 @@ const UpdateGuide = async (req, res) => {
       }
 
       // Obtener los documentos actuales de la base de datos
-      const selectSql = "SELECT documents FROM carga WHERE nGuia = ?";
-      const [currentDocuments] = await pool.query(selectSql, [nGuia]);
+      const selectSql =
+        "SELECT documents, viaticos, pPeajes, otros, pCombustible FROM carga WHERE nGuia = ?";
+      const [data] = await pool.query(selectSql, [nGuia]);
 
-      let combinedDocuments = currentDocuments[0].documents;
+      let combinedDocuments = data[0].documents;
+
+      let newCombustible = data[0].pCombustible + parseFloat(combustible);
+      let newViaticos = data[0].viaticos + parseFloat(viaticos);
+      let newPeaje = data[0].pPeajes + parseFloat(peaje);
+      let newOtros = data[0].otros + parseFloat(otros);
+      // if(nota)
+
+      console.log(newCombustible, newViaticos, newPeaje, newOtros);
 
       // Agregar nuevos documentos solo si hay archivos
       if (files && files.length > 0) {
@@ -240,10 +258,18 @@ const UpdateGuide = async (req, res) => {
             )
           : files.map((file) => file.filename).join(",");
       }
-      // Actualizar la base de datos con los documentos combinados
+
       const updateSql =
-        "UPDATE carga SET fechaSalida = ?, documents = ?, estado = 'O' WHERE nGuia = ?";
-      await pool.query(updateSql, [fechaSalida, combinedDocuments, nGuia]);
+        "UPDATE carga SET fechaSalida = ?, documents = ?, pCombustible = ?, viaticos = ?, pPeajes = ?, otros = ? , estado = 'O' WHERE nGuia = ?";
+      await pool.query(updateSql, [
+        fechaSalida,
+        combinedDocuments,
+        newCombustible,
+        newViaticos,
+        newPeaje,
+        newOtros,
+        nGuia,
+      ]);
 
       res.status(200).json({ message: "Guía actualizada correctamente" });
     } catch (error) {
@@ -254,7 +280,16 @@ const UpdateGuide = async (req, res) => {
       return res.status(500).json({ message: "Internal Server Error" });
     }
   } else if (estado === "O") {
-    const { nGuia, fechaLlegada, kmDestino, CombustibleDestino } = req.body;
+    const {
+      nGuia,
+      fechaLlegada,
+      kmDestino,
+      CombustibleDestino,
+      combustible,
+      peaje,
+      viaticos,
+      otros,
+    } = req.body;
     const files = req.files || null;
 
     const deleteFiles = async (files) => {
@@ -280,7 +315,16 @@ const UpdateGuide = async (req, res) => {
     };
 
     try {
-      if (!nGuia || !fechaLlegada || !kmDestino || !CombustibleDestino) {
+      if (
+        !nGuia ||
+        !fechaLlegada ||
+        !kmDestino ||
+        !CombustibleDestino ||
+        !combustible ||
+        !peaje ||
+        !viaticos ||
+        !otros
+      ) {
         if (files) {
           await deleteFiles(files);
         }
@@ -288,10 +332,16 @@ const UpdateGuide = async (req, res) => {
       }
 
       // Obtener documentos y ID de equipo actuales de la base de datos
-      const selectSql = "SELECT documents, idEquipo FROM carga WHERE nGuia = ?";
+      const selectSql =
+        "SELECT documents, idEquipo, pCombustible, pPeajes, otros, viaticos FROM carga WHERE nGuia = ?";
       const [currentData] = await pool.query(selectSql, [nGuia]);
 
       let combinedDocuments = currentData[0].documents;
+      let newCombustible =
+        currentData[0].pCombustible + parseFloat(combustible);
+      let newPeaje = currentData[0].pPeajes + parseFloat(peaje);
+      let newViaticos = currentData[0].viaticos + parseFloat(viaticos);
+      let newOtros = currentData[0].otros + parseFloat(otros);
 
       if (files && files.length > 0) {
         combinedDocuments = combinedDocuments
@@ -321,12 +371,16 @@ const UpdateGuide = async (req, res) => {
 
       // Actualizar la base de datos con los documentos y otros datos
       const updateSql =
-        "UPDATE carga SET fechaLlegada = ?, kmEquipoDestino = ?, CombustibleDestino = ?, documents = ?, estado = 'C' WHERE nGuia = ?";
+        "UPDATE carga SET fechaLlegada = ?, kmEquipoDestino = ?, CombustibleDestino = ?, documents = ? , pCombustible = ?, pPeajes = ?, viaticos = ?, otros = ?, estado = 'C' WHERE nGuia = ?";
       await pool.query(updateSql, [
         fechaLlegada,
         kmDestino,
         CombustibleDestino,
         combinedDocuments,
+        newCombustible,
+        newPeaje,
+        newViaticos,
+        newOtros,
         nGuia,
       ]);
 

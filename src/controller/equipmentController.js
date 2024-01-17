@@ -73,6 +73,7 @@ const getEquipments = async (req, res) => {
   const query = `SELECT
   e.id AS idEquipo,
   e.estado as estadoEquipo,
+  e.alias,
   c.id AS idChuto,
   c.marca AS marcaChuto,
   c.model AS modeloChuto,

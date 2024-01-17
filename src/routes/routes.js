@@ -9,6 +9,7 @@ import { methods as tokenControllers } from "../controller/tokenController.js";
 import { methods as equipmentController } from "../controller/equipmentController.js";
 import { methods as GuideController } from "../controller/GuideController.js";
 import { methods as ClientController } from "../controller/ClientController.js";
+import { methods as DriversController } from "../controller/driversController.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const router = express.Router();
@@ -86,6 +87,9 @@ router.post(
   uploader("clients").single("logo"),
   ClientController.addClient
 );
+
+// Drivers
+router.get("/Drivers", DriversController.getDrivers);
 
 // Routers - Images - Public //
 
