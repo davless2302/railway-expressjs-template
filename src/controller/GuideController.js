@@ -247,8 +247,6 @@ const UpdateGuide = async (req, res) => {
       let newOtros = data[0].otros + parseFloat(otros);
       // if(nota)
 
-      console.log(newCombustible, newViaticos, newPeaje, newOtros);
-
       // Agregar nuevos documentos solo si hay archivos
       if (files && files.length > 0) {
         combinedDocuments = combinedDocuments
