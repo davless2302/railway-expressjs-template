@@ -9,40 +9,46 @@ const __dirname = path.dirname(__filename);
 const getFinancialData = async (req, res) => {
   const year = "2024";
   const sql = `SELECT 
-COALESCE(t1.Mes, t2.Mes) AS Mes,
-COALESCE(SUM(t1.Ingreso_PC), 0) AS IngresosCobrados,
-COALESCE(SUM(t1.Ingreso_O), 0) AS IngresosPendientes,
-COALESCE(SUM(t1.Ingreso_C), 0) AS IngresosProgramados,
-COALESCE(SUM(t2.GastoTotal), 0) AS GastoTotal
+  COALESCE(t1.Mes, t2.Mes) AS Mes,
+  COALESCE(SUM(t1.Ingreso_PC), 0) AS IngresosCobrados,
+  COALESCE(SUM(t1.Ingreso_O), 0) AS IngresosProgramados,
+  COALESCE(SUM(t1.Ingreso_C), 0) AS IngresosPendientes,
+  COALESCE(SUM(t1.IngresoTotal), 0) AS IngresoTotal,
+  COALESCE(SUM(t2.GastoTotal), 0) AS GastoTotal,
+  COALESCE(SUM(t1.ingresoTotal - t2.GastoTotal), 0) AS IngresoNeto,
+  COALESCE(SUM(t1.Ingreso_O + t1.Ingreso_C), 0) AS IngresoTotalPendiente,
+  COALESCE(ROUND(SUM(((t1.Ingreso_O + t1.Ingreso_C) * 100) / t1.IngresoTotal ), 2), 0) AS PorcetajePendiente
 FROM 
-(SELECT 
-    MONTH(c.fechaSalida) AS Mes,
-    SUM(CASE WHEN c.estado = 'PC' AND YEAR(c.fechaSalida) = ${year} THEN c.costo ELSE 0 END) AS Ingreso_PC,
-    SUM(CASE WHEN c.estado = 'O' AND YEAR(c.fechaSalida) = ${year} THEN c.costo ELSE 0 END) AS Ingreso_O,
-    SUM(CASE WHEN c.estado = 'C' AND YEAR(c.fechaSalida) = ${year} THEN c.costo ELSE 0 END) AS Ingreso_C
- FROM 
-    carga AS c
- WHERE 
-    (c.estado IN ('PC', 'O', 'C')) AND YEAR(c.fechaSalida) = ${year}
- GROUP BY 
-    MONTH(c.fechaSalida)) AS t1
+  (SELECT 
+      MONTH(c.fechaSalida) AS Mes,
+      SUM(CASE WHEN c.estado = 'PC' AND YEAR(c.fechaSalida) = ${year} THEN c.costo ELSE 0 END) AS Ingreso_PC,
+      SUM(CASE WHEN c.estado = 'O' AND YEAR(c.fechaSalida) = ${year} THEN c.costo ELSE 0 END) AS Ingreso_O,
+      SUM(CASE WHEN c.estado = 'C' AND YEAR(c.fechaSalida) = ${year} THEN c.costo ELSE 0 END) AS Ingreso_C,
+      SUM(CASE WHEN c.estado IN ('O', 'C', 'PC') AND YEAR(c.fechaSalida) = ${year} THEN c.costo ELSE 0 END) AS ingresoTotal
+   FROM 
+      carga AS c
+   WHERE 
+      (c.estado IN ('PC', 'O', 'C')) AND YEAR(c.fechaSalida) = ${year}
+   GROUP BY 
+      MONTH(c.fechaSalida)) AS t1
 
 RIGHT JOIN
 
-(SELECT 
-    MONTH(c.fechaSalida) AS Mes,
-    SUM(CASE WHEN c.estado IN ('P','O', 'C', 'PC') AND YEAR(c.fechaSalida) = ${year} THEN c.pCombustible + c.pPeajes + c.pagoConductor + c.viaticos + c.otros ELSE 0 END) AS GastoTotal
- FROM 
-    carga AS c
- WHERE 
-    YEAR(c.fechaSalida) = ${year}
- GROUP BY 
-    MONTH(c.fechaSalida)) AS t2
+  (SELECT 
+      MONTH(c.fechaSalida) AS Mes,
+      SUM(CASE WHEN c.estado IN ('O', 'C', 'PC') AND YEAR(c.fechaSalida) = ${year} THEN c.pCombustible + c.pPeajes + c.pagoConductor + c.viaticos + c.otros ELSE 0 END) AS GastoTotal
+   FROM 
+      carga AS c
+   WHERE 
+      YEAR(c.fechaSalida) = ${year}
+   GROUP BY 
+      MONTH(c.fechaSalida)) AS t2
 
 ON t1.Mes = t2.Mes
 
 GROUP BY
-COALESCE(t1.Mes, t2.Mes);
+  COALESCE(t1.Mes, t2.Mes)
+
 `;
   try {
     const [results] = await pool.query(sql);
