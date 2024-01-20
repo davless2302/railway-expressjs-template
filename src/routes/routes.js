@@ -10,6 +10,7 @@ import { methods as equipmentController } from "../controller/equipmentControlle
 import { methods as GuideController } from "../controller/GuideController.js";
 import { methods as ClientController } from "../controller/ClientController.js";
 import { methods as DriversController } from "../controller/driversController.js";
+import { methods as DataController } from "../controller/IngresosController.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const router = express.Router();
@@ -90,6 +91,8 @@ router.post(
 
 // Drivers
 router.get("/Drivers", DriversController.getDrivers);
+
+router.get("/FinancialData", DataController.getFinancialData);
 
 // Routers - Images - Public //
 

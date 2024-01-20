@@ -174,7 +174,6 @@ const addGuide = async (req, res) => {
     res.status(500).json({ status: 500, message: "Internal Server Error" });
   }
 };
-
 const getGuideAll = async (req, res) => {
   try {
     const [result] = await pool.query(
@@ -185,7 +184,6 @@ const getGuideAll = async (req, res) => {
     console.log(error);
   }
 };
-
 const getGuide = async (req, res) => {
   const { id } = req.params;
   try {
