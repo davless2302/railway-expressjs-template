@@ -1,8 +1,7 @@
 // import { pool } from "../Database/database.js";
 import { JWT_SECRET } from "../config.js";
 import jwt from "jsonwebtoken";
-import aes from "crypto-js/aes.js";
-import encUtf8 from "crypto-js/enc-utf8.js";
+// Removed crypto-js usage; password handling moved to bcrypt
 
 const RefreshToken = async (req, res) => {
   const { token } = req.body;

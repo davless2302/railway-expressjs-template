@@ -2,7 +2,7 @@ import { pool } from "../Database/database.js";
 
 const getFinancialData = async (req, res) => {
   try {
-    const year = "2024";
+    const year = "2026";
     const sql = `
     SELECT 
     COALESCE(t1.Mes, t2.Mes) AS Mes,

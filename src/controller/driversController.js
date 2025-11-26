@@ -89,7 +89,7 @@ const addDriver = async (req, res) => {
     ) {
       if (type === "CHUTO") {
         sql = `
-          INSERT INTO cars (type, marca, model, year, color, placa, km, sm, sc)
+          INSERT INTO cars (type, marca, model, year, color, placa, km, serialM, serialC)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
         values = [type, marca, model, year, color, placa, km, sm, sc];
@@ -113,7 +113,7 @@ const addDriver = async (req, res) => {
     // Construir la sentencia SQL si se suben archivos
     if (type === "CHUTO") {
       sql = `
-        INSERT INTO cars (type, marca, model, year, color, placa, km, sm, sc, images, documents)
+        INSERT INTO cars (type, marca, model, year, color, placa, km, serialM, serialC, images, documents)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
       values = [

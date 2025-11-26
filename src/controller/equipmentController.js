@@ -31,7 +31,7 @@ const getEquipment = async (req, res) => {
 };
 
 const createEquipment = async (req, res) => {
-  const { chutoID, remolqueID, choferID } = req.body;
+  const { chutoID, remolqueID, choferID, alias } = req.body;
 
   if (chutoID === "" || remolqueID === "" || choferID === "") {
     res.status(400).json({ message: "Bad Request" });
@@ -41,8 +41,8 @@ const createEquipment = async (req, res) => {
 
       // Consulta para insertar en la tabla 'equipos'
       const sqlEquipos =
-        "INSERT INTO equipos (idVehiculo, idChofer, idRemolque) VALUES (?, ?, ?)";
-      const valuesEquipos = [chutoID, choferID, remolqueID];
+        "INSERT INTO equipos (idVehiculo, idChofer, idRemolque, alias) VALUES (?, ?, ?, ?)";
+      const valuesEquipos = [chutoID, choferID, remolqueID, alias || null];
       await pool.execute(sqlEquipos, valuesEquipos);
 
       // Consultas para actualizar las tablas 'cars' y 'choferes'

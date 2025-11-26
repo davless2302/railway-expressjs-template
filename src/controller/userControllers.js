@@ -1,6 +1,6 @@
 import { pool } from "../Database/database.js";
 import { unlink } from "fs/promises"; // Use fs.promises for promises-based API
-import CryptoJS from "crypto-js";
+import bcrypt from "bcryptjs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { JWT_SECRET } from "../config.js";
@@ -35,7 +35,6 @@ const getUsers = async (req, res) => {
 };
 
 const addUser = async (req, res) => {
-  const key = JWT_SECRET;
   const { cedula, nombre, apellido, username, password, correo, rol, genero } =
     req.body;
   const file = req.file;
@@ -62,7 +61,8 @@ const addUser = async (req, res) => {
     }
 
     const avatar = file ? file.filename : null;
-    const hashPassword = CryptoJS.AES.encrypt(password, key).toString();
+    const saltRounds = 10;
+    const hashPassword = await bcrypt.hash(password, saltRounds);
     let sql = `INSERT INTO usuarios (cedula, nombre, apellido, username, password, email, rol, genero`;
     const values = [
       cedula,

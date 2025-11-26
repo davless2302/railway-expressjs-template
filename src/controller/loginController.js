@@ -1,12 +1,8 @@
 import { pool } from "../Database/database.js";
 import { JWT_SECRET } from "../config.js";
 import jwt from "jsonwebtoken";
-import aes from "crypto-js/aes.js";
-import encUtf8 from "crypto-js/enc-utf8.js";
+import bcrypt from "bcryptjs";
 
-const decryptPassword = (encryptedPassword, key) => {
-  return aes.decrypt(encryptedPassword, key).toString(encUtf8);
-};
 
 const findUserByUsername = async (username) => {
   const [result] = await pool.query("SELECT * FROM usuarios ");
@@ -36,7 +32,6 @@ const generateToken = (user) => {
 
 const Login = async (req, res) => {
   try {
-    const key = JWT_SECRET;
     const { username, password } = req.body;
     if (!username || !password) {
       res.status(401).send("401 || Not authorized");
@@ -50,9 +45,9 @@ const Login = async (req, res) => {
       return;
     }
 
-    const storedPassword = decryptPassword(user.password, key);
+    const match = await bcrypt.compare(password, user.password);
 
-    if (storedPassword === password) {
+    if (match) {
       // Evitar enviar la contraseña en la respuesta
       const { password, ...userWithoutPassword } = user;
 

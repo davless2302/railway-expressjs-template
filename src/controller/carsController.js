@@ -88,18 +88,18 @@ const addCar = async (req, res) => {
       (images && images.length === 0 && documents && documents.length === 0)
     ) {
       if (type === "CHUTO") {
-        sql = `
-          INSERT INTO cars (type, marca, model, year, color, placa, km, sm, sc)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `;
-        values = [type, marca, model, year, color, placa, km, sm, sc];
-      } else if (type === "REMOLQUE") {
-        sql = `
-          INSERT INTO cars (type, marca, model, year, color)
-          VALUES (?, ?, ?, ?, ?)
-        `;
-        values = [type, marca, model, year, color];
-      }
+          sql = `
+            INSERT INTO cars (type, marca, model, year, color, placa, km, serialM, serialC)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `;
+          values = [type, marca, model, year, color, placa, km, sm, sc];
+        } else if (type === "REMOLQUE") {
+          sql = `
+            INSERT INTO cars (type, marca, model, year, color)
+            VALUES (?, ?, ?, ?, ?)
+          `;
+          values = [type, marca, model, year, color];
+        }
 
       const result = await pool.execute(sql, values);
       console.log(result);
@@ -113,7 +113,7 @@ const addCar = async (req, res) => {
     // Construir la sentencia SQL si se suben archivos
     if (type === "CHUTO") {
       sql = `
-        INSERT INTO cars (type, marca, model, year, color, placa, km, sm, sc, images, documents)
+        INSERT INTO cars (type, marca, model, year, color, placa, km, serialM, serialC, images, documents)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
       values = [

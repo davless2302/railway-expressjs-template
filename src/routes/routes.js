@@ -11,6 +11,7 @@ import { methods as GuideController } from "../controller/GuideController.js";
 import { methods as ClientController } from "../controller/ClientController.js";
 import { methods as DriversController } from "../controller/driversController.js";
 import { methods as DataController } from "../controller/IngresosController.js";
+import { methods as FinancialDataController } from "../controller/FinancialDataController.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const router = express.Router();
@@ -92,6 +93,10 @@ router.post(
 // Drivers
 router.get("/Drivers", DriversController.getDrivers);
 
+// Financial Data - New endpoint with period-based filtering
+router.get("/financialData", FinancialDataController.getFinancialData);
+
+// Legacy Financial Data endpoint
 router.get("/FinancialData", DataController.getFinancialData);
 
 // Routers - Images - Public //

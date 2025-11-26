@@ -198,264 +198,201 @@ const getGuide = async (req, res) => {
 };
 const UpdateGuide = async (req, res) => {
   const { estado } = req.body;
+  const getIncomingFiles = (req) => {
+    // Prefer multer files (objects), otherwise accept an array of filenames in req.body.files
+    if (req.files && req.files.length > 0) return req.files;
+    if (Array.isArray(req.body.files) && req.body.files.length > 0) {
+      // normalize to objects with filename property
+      return req.body.files.map((name) => ({ filename: name }));
+    }
+    return null;
+  };
+
+  const getField = (req, nameVariants) => {
+    for (let n of nameVariants) {
+      if (req.body && typeof req.body[n] !== 'undefined' && req.body[n] !== null) return req.body[n];
+      if (req.query && typeof req.query[n] !== 'undefined' && req.query[n] !== null) return req.query[n];
+      if (req.params && typeof req.params[n] !== 'undefined' && req.params[n] !== null) return req.params[n];
+    }
+    return undefined;
+  };
+
+  const deleteFiles = async (files) => {
+    if (!files || files.length === 0) return;
+    for (let file of files) {
+      if (!file || !file.filename) continue;
+      const filePath = path.join(__dirname, "../static/images/guide", file.filename);
+      try {
+        await unlink(filePath);
+        console.log(`Archivo eliminado: ${filePath}`);
+      } catch (err) {
+        console.error(`Error al eliminar el archivo: ${filePath}`, err);
+      }
+    }
+  };
+
+  // Step 1 (departure): app may send estado = 'O' (or legacy 'P')
   if (estado === "P") {
-    const { nGuia, fechaSalida, combustible, peaje, viaticos, otros, nota } =
-      req.body;
-    const files = req.files ? req.files : null;
+    const nGuia = getField(req, ['nGuia', 'nguia', 'n_guia']);
+    const fechaSalida = getField(req, ['fechaSalida', 'fecha_salida', 'fechaSalida']);
+    const combustible = getField(req, ['combustible']);
+    const peaje = getField(req, ['peaje']);
+    const viaticos = getField(req, ['viaticos']);
+    const otros = getField(req, ['otros']);
+    const files = getIncomingFiles(req);
     try {
-      const deleteFiles = async (files) => {
-        if (files && files.length > 0) {
-          for (let file of files) {
-            const filePath = path.join(
-              __dirname,
-              "../static/images/guide",
-              file.filename
-            );
-
-            try {
-              await unlink(filePath);
-              console.log(`Archivo eliminado: ${filePath}`);
-            } catch (unlinkError) {
-              console.error(
-                `Error al eliminar el archivo: ${filePath}`,
-                unlinkError
-              );
-            }
-          }
-        }
-      };
-
       if (!nGuia || !fechaSalida) {
-        if (files) {
-          await deleteFiles(files);
-        }
-        return res.status(400).json({ message: "Solicitud incorrecta" });
+        return res.status(400).json({ message: "Solicitud incorrecta: falta nGuia o fechaSalida" });
       }
 
-      // Obtener los documentos actuales de la base de datos
-      const selectSql =
-        "SELECT documents, viaticos, pPeajes, otros, pCombustible FROM carga WHERE nGuia = ?";
+      const selectSql = "SELECT documents, viaticos, pPeajes, otros, pCombustible FROM carga WHERE nGuia = ?";
       const [data] = await pool.query(selectSql, [nGuia]);
+      if (!data || data.length === 0) return res.status(404).json({ message: "Guía no encontrada" });
 
       let combinedDocuments = data[0].documents;
+      const currentPCombustible = parseFloat(data[0].pCombustible || 0);
+      const currentViaticos = parseFloat(data[0].viaticos || 0);
+      const currentPPeajes = parseFloat(data[0].pPeajes || 0);
+      const currentOtros = parseFloat(data[0].otros || 0);
 
-      let newCombustible = data[0].pCombustible + parseFloat(combustible);
-      let newViaticos = data[0].viaticos + parseFloat(viaticos);
-      let newPeaje = data[0].pPeajes + parseFloat(peaje);
-      let newOtros = data[0].otros + parseFloat(otros);
-      // if(nota)
+      const addCombustible = parseFloat(combustible || 0);
+      const addViaticos = parseFloat(viaticos || 0);
+      const addPeaje = parseFloat(peaje || 0);
+      const addOtros = parseFloat(otros || 0);
 
-      // Agregar nuevos documentos solo si hay archivos
+      const newCombustible = currentPCombustible + addCombustible;
+      const newViaticos = currentViaticos + addViaticos;
+      const newPeaje = currentPPeajes + addPeaje;
+      const newOtros = currentOtros + addOtros;
+
       if (files && files.length > 0) {
         combinedDocuments = combinedDocuments
-          ? combinedDocuments.concat(
-              ",",
-              files.map((file) => file.filename)
-            )
-          : files.map((file) => file.filename).join(",");
+          ? combinedDocuments + "," + files.map((f) => f.filename).join(",")
+          : files.map((f) => f.filename).join(",");
       }
 
-      const updateSql =
-        "UPDATE carga SET fechaSalida = ?, documents = ?, pCombustible = ?, viaticos = ?, pPeajes = ?, otros = ? , estado = 'O' WHERE nGuia = ?";
-      await pool.query(updateSql, [
-        fechaSalida,
-        combinedDocuments,
-        newCombustible,
-        newViaticos,
-        newPeaje,
-        newOtros,
-        nGuia,
-      ]);
+      const updateSql = "UPDATE carga SET fechaSalida = ?, documents = ?, pCombustible = ?, viaticos = ?, pPeajes = ?, otros = ?, estado = 'O' WHERE nGuia = ?";
+      await pool.query(updateSql, [fechaSalida, combinedDocuments, newCombustible, newViaticos, newPeaje, newOtros, nGuia]);
 
       res.status(200).json({ message: "Guía actualizada correctamente" });
     } catch (error) {
       console.log(error);
-      if (files) {
-        await deleteFiles(files);
-      }
+      if (files) await deleteFiles(files);
       return res.status(500).json({ message: "Internal Server Error" });
     }
-  } else if (estado === "O") {
-    const {
-      nGuia,
-      fechaLlegada,
-      kmDestino,
-      CombustibleDestino,
-      combustible,
-      peaje,
-      viaticos,
-      otros,
-    } = req.body;
-    const files = req.files || null;
+  }
 
-    const deleteFiles = async (files) => {
-      if (files && files.length > 0) {
-        for (let file of files) {
-          const filePath = path.join(
-            __dirname,
-            "../static/images/guide",
-            file.filename
-          );
-
-          try {
-            await unlink(filePath);
-            console.log(`Archivo eliminado: ${filePath}`);
-          } catch (unlinkError) {
-            console.error(
-              `Error al eliminar el archivo: ${filePath}`,
-              unlinkError
-            );
-          }
-        }
-      }
-    };
+  // Step 2 (arrival): app may send estado = 'C'
+  else if (estado === "O") {
+    const nGuia = getField(req, ['nGuia', 'nguia', 'n_guia']);
+    const fechaLlegada = getField(req, ['fechaLlegada', 'fecha_llegada']);
+    const kmDestino = getField(req, ['kmDestino', 'km_destino']);
+    const CombustibleDestino = getField(req, ['CombustibleDestino', 'combustibleDestino', 'combustible_destino']);
+    const combustible = getField(req, ['combustible']);
+    const peaje = getField(req, ['peaje']);
+    const viaticos = getField(req, ['viaticos']);
+    const otros = getField(req, ['otros']);
+    const files = getIncomingFiles(req);
 
     try {
-      if (
-        !nGuia ||
-        !fechaLlegada ||
-        !kmDestino ||
-        !CombustibleDestino ||
-        !combustible ||
-        !peaje ||
-        !viaticos ||
-        !otros
-      ) {
-        if (files) {
-          await deleteFiles(files);
-        }
-        return res.status(400).json({ message: "Solicitud incorrecta" });
+      if (!nGuia) {
+        return res.status(400).json({ message: "Solicitud incorrecta: falta nGuia" });
       }
 
-      // Obtener documentos y ID de equipo actuales de la base de datos
-      const selectSql =
-        "SELECT documents, idEquipo, pCombustible, pPeajes, otros, viaticos FROM carga WHERE nGuia = ?";
+      const selectSql = "SELECT documents, idEquipo, pCombustible, pPeajes, otros, viaticos, kmEquipoDestino, CombustibleDestino FROM carga WHERE nGuia = ?";
       const [currentData] = await pool.query(selectSql, [nGuia]);
+      if (!currentData || currentData.length === 0) return res.status(404).json({ message: "Guía no encontrada" });
 
       let combinedDocuments = currentData[0].documents;
-      let newCombustible =
-        currentData[0].pCombustible + parseFloat(combustible);
-      let newPeaje = currentData[0].pPeajes + parseFloat(peaje);
-      let newViaticos = currentData[0].viaticos + parseFloat(viaticos);
-      let newOtros = currentData[0].otros + parseFloat(otros);
+      const currentPCombustible = parseFloat(currentData[0].pCombustible || 0);
+      const currentPPeajes = parseFloat(currentData[0].pPeajes || 0);
+      const currentViaticos = parseFloat(currentData[0].viaticos || 0);
+      const currentOtros = parseFloat(currentData[0].otros || 0);
+
+      const addCombustible = parseFloat(combustible || 0);
+      const addPeaje = parseFloat(peaje || 0);
+      const addViaticos = parseFloat(viaticos || 0);
+      const addOtros = parseFloat(otros || 0);
+
+      const newCombustible = currentPCombustible + addCombustible;
+      const newPeaje = currentPPeajes + addPeaje;
+      const newViaticos = currentViaticos + addViaticos;
+      const newOtros = currentOtros + addOtros;
 
       if (files && files.length > 0) {
         combinedDocuments = combinedDocuments
-          ? combinedDocuments.concat(
-              ",",
-              files.map((file) => file.filename)
-            )
-          : files.map((file) => file.filename).join(",");
+          ? combinedDocuments + "," + files.map((f) => f.filename).join(",")
+          : files.map((f) => f.filename).join(",");
       }
 
       // Obtener el ID del vehículo asociado al equipo
       const query = "SELECT idVehiculo FROM equipos WHERE id = ?";
       const [result] = await pool.query(query, [currentData[0].idEquipo]);
+      if (!result || result.length === 0) return res.status(404).json({ message: "Equipo no encontrado" });
 
       // Obtener el kilometraje actual del vehículo
       const query2 = "SELECT km FROM cars WHERE id = ?";
       const [result2] = await pool.query(query2, [result[0].idVehiculo]);
+      if (!result2 || result2.length === 0) return res.status(404).json({ message: "Vehículo no encontrado" });
 
-      if (kmDestino < result2[0].km) {
-        return res.status(400).json({
-          message:
-            "El Kilometraje es Menor al Ingresado en Sistema (" +
-            result2[0].km +
-            "km)",
-        });
+      // If kmDestino provided, validate it; otherwise keep existing kmEquipoDestino
+      const hasKmDestino = typeof kmDestino !== 'undefined' && kmDestino !== null && kmDestino !== '';
+      if (hasKmDestino) {
+        if (parseFloat(kmDestino) < parseFloat(result2[0].km)) {
+          return res.status(400).json({ message: "El Kilometraje es Menor al Ingresado en Sistema (" + result2[0].km + " km)" });
+        }
       }
 
-      // Actualizar la base de datos con los documentos y otros datos
-      const updateSql =
-        "UPDATE carga SET fechaLlegada = ?, kmEquipoDestino = ?, CombustibleDestino = ?, documents = ? , pCombustible = ?, pPeajes = ?, viaticos = ?, otros = ?, estado = 'C' WHERE nGuia = ?";
-      await pool.query(updateSql, [
-        fechaLlegada,
-        kmDestino,
-        CombustibleDestino,
-        combinedDocuments,
-        newCombustible,
-        newPeaje,
-        newViaticos,
-        newOtros,
-        nGuia,
-      ]);
+      // Use existing values when specific fields are not provided
+      const kmToUpdate = hasKmDestino ? kmDestino : currentData[0].kmEquipoDestino;
+      const combustibleDestinoToUpdate = (typeof CombustibleDestino !== 'undefined' && CombustibleDestino !== null && CombustibleDestino !== '') ? CombustibleDestino : currentData[0].CombustibleDestino;
 
-      // Actualizar el kilometraje del vehículo
-      const updateSql2 = "UPDATE cars SET km = ?  WHERE id = ?";
-      await pool.query(updateSql2, [kmDestino, result[0].idVehiculo]);
+      const updateSql = "UPDATE carga SET fechaLlegada = ?, kmEquipoDestino = ?, CombustibleDestino = ?, documents = ?, pCombustible = ?, pPeajes = ?, viaticos = ?, otros = ?, estado = 'C' WHERE nGuia = ?";
+      await pool.query(updateSql, [fechaLlegada, kmToUpdate, combustibleDestinoToUpdate, combinedDocuments, newCombustible, newPeaje, newViaticos, newOtros, nGuia]);
+
+      // Actualizar el kilometraje del vehículo sólo si se recibió kmDestino
+      if (hasKmDestino) {
+        const updateSql2 = "UPDATE cars SET km = ? WHERE id = ?";
+        await pool.query(updateSql2, [kmDestino, result[0].idVehiculo]);
+      }
 
       res.status(200).json({ message: "Guía actualizada correctamente" });
     } catch (error) {
       console.log(error);
-
-      // Eliminar archivos en caso de error
-      if (files) {
-        await deleteFiles(files);
-      }
-
+      if (files) await deleteFiles(files);
       return res.status(500).json({ message: "Error interno del servidor" });
     }
-  } else if (estado === "C") {
-    const { nGuia } = req.body;
-    const files = req.files ? req.files : null;
+  }
+
+  // Step 3 (payment confirmation): app may send estado = 'PC'
+  else if (estado === "C") {
+    const nGuia = getField(req, ['nGuia', 'nguia', 'n_guia']);
+    const files = getIncomingFiles(req);
     try {
-      const deleteFiles = async (files) => {
-        if (files && files.length > 0) {
-          for (let file of files) {
-            const filePath = path.join(
-              __dirname,
-              "../static/images/guide",
-              file.filename
-            );
+      if (!nGuia) return res.status(400).json({ message: "Solicitud incorrecta: falta nGuia" });
 
-            try {
-              await unlink(filePath);
-              console.log(`Archivo eliminado: ${filePath}`);
-            } catch (unlinkError) {
-              console.error(
-                `Error al eliminar el archivo: ${filePath}`,
-                unlinkError
-              );
-            }
-          }
-        }
-      };
-
-      if (!nGuia || !estado) {
-        if (files) {
-          await deleteFiles(files);
-        }
-        return res.status(400).json({ message: "Solicitud incorrecta" });
-      }
-
-      // Obtener los documentos actuales de la base de datos
       const selectSql = "SELECT documents FROM carga WHERE nGuia = ?";
       const [currentDocuments] = await pool.query(selectSql, [nGuia]);
+      if (!currentDocuments || currentDocuments.length === 0) return res.status(404).json({ message: "Guía no encontrada" });
 
       let combinedDocuments = currentDocuments[0].documents;
-
-      // Agregar nuevos documentos solo si hay archivos
       if (files && files.length > 0) {
         combinedDocuments = combinedDocuments
-          ? combinedDocuments.concat(
-              ",",
-              files.map((file) => file.filename)
-            )
-          : files.map((file) => file.filename).join(",");
+          ? combinedDocuments + "," + files.map((f) => f.filename).join(",")
+          : files.map((f) => f.filename).join(",");
       }
-      // Actualizar la base de datos con los documentos combinados
-      const updateSql =
-        "UPDATE carga SET documents = ?, estado = 'PC' WHERE nGuia = ?";
+
+      const updateSql = "UPDATE carga SET documents = ?, estado = 'PC' WHERE nGuia = ?";
       await pool.query(updateSql, [combinedDocuments, nGuia]);
 
       res.status(200).json({ message: "Guía actualizada correctamente" });
     } catch (error) {
       console.log(error);
-      if (files) {
-        await deleteFiles(files);
-      }
+      if (files) await deleteFiles(files);
       return res.status(500).json({ message: "Internal Server Error" });
     }
+  } else {
+    return res.status(400).json({ message: "Estado no soportado. Use one of: O, C, PC (or P for legacy)." });
   }
 };
 
