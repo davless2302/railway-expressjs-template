@@ -223,6 +223,7 @@ const processFinancialData = (rawData, period, dateRange, labels) => {
     },
     summary: {
       totalIngresos: 0,
+      totalIngresosPendientes: 0,
       totalGastos: 0,
       utilidad: 0,
       utilidadPorcentaje: 0,
@@ -285,26 +286,36 @@ const processFinancialData = (rawData, period, dateRange, labels) => {
   rawData.forEach((row) => {
     const ingreso = parseFloat(row.ingreso) || 0;
     const gasto = parseFloat(row.gastoTotal) || 0;
+    const isPending = row.estado === "O" || row.estado === "C";
+    const isCompleted = row.estado === "PC";
+    const isNotPlanning = isPending || isCompleted; // Any status except 'P'
 
-    totalIngresos += ingreso;
-    totalGastos += gasto;
+    // Count completed orders (PC) in total income
+    if (isCompleted) {
+      totalIngresos += ingreso;
 
-    // Track pending income and count
-    if (row.estado === "O" || row.estado === "C") {
+      // Aggregate by category (using tipoCarga for ingresos) - only completed
+      const categoria = row.tipoCarga || "Otros";
+      categoriaIngresos[categoria] = (categoriaIngresos[categoria] || 0) + ingreso;
+    }
+
+    // Count expenses for all orders that are not in planning (O, C, PC)
+    if (isNotPlanning) {
+      totalGastos += gasto;
+
+      // Aggregate gastos by type - all non-planning orders
+      categoriaGastos.Combustible += parseFloat(row.pCombustible) || 0;
+      categoriaGastos.Peajes += parseFloat(row.pPeajes) || 0;
+      categoriaGastos.Salarios += parseFloat(row.pagoConductor) || 0;
+      categoriaGastos.Viaticos += parseFloat(row.viaticos) || 0;
+      categoriaGastos.Otros += parseFloat(row.otros) || 0;
+    }
+
+    // Track pending income and count separately
+    if (isPending) {
       totalIngresosPendientes += ingreso;
       totalCargasPendientes += 1;
     }
-
-    // Aggregate by category (using tipoCarga for ingresos)
-    const categoria = row.tipoCarga || "Otros";
-    categoriaIngresos[categoria] = (categoriaIngresos[categoria] || 0) + ingreso;
-
-    // Aggregate gastos by type
-    categoriaGastos.Combustible += parseFloat(row.pCombustible) || 0;
-    categoriaGastos.Peajes += parseFloat(row.pPeajes) || 0;
-    categoriaGastos.Salarios += parseFloat(row.pagoConductor) || 0;
-    categoriaGastos.Viaticos += parseFloat(row.viaticos) || 0;
-    categoriaGastos.Otros += parseFloat(row.otros) || 0;
 
     // Aggregate by vehicle
     const vehicleKey = row.Equipo || "Sin Equipo";
@@ -318,10 +329,14 @@ const processFinancialData = (rawData, period, dateRange, labels) => {
         ingresosPendientes: 0,
       };
     }
-    vehicleData[vehicleKey].cargas += 1;
-    vehicleData[vehicleKey].ingresos += ingreso;
 
-    if (row.estado === "O" || row.estado === "C") {
+    // Only count completed orders in vehicle income
+    if (isCompleted) {
+      vehicleData[vehicleKey].cargas += 1;
+      vehicleData[vehicleKey].ingresos += ingreso;
+    }
+
+    if (isPending) {
       vehicleData[vehicleKey].cargasPendientes += 1;
       vehicleData[vehicleKey].ingresosPendientes += ingreso;
     }
@@ -329,12 +344,27 @@ const processFinancialData = (rawData, period, dateRange, labels) => {
     // Aggregate by time period for charts
     const labelIndex = getLabelIndex(row.fechaSalida, period, dateRange, labels);
     if (labelIndex >= 0 && labelIndex < labels.length) {
-      response.ingresos.total.data[labelIndex] += ingreso;
-      response.gastos.total.data[labelIndex] += gasto;
-      response.utilidad.data[labelIndex] += (ingreso - gasto);
-      response.count.dataset.data[labelIndex] += 1;
+      // Income only for completed orders
+      if (isCompleted) {
+        response.ingresos.total.data[labelIndex] += ingreso;
+        response.count.dataset.data[labelIndex] += 1;
+      }
 
-      if (row.estado === "O" || row.estado === "C") {
+      // Expenses for all non-planning orders
+      if (isNotPlanning) {
+        response.gastos.total.data[labelIndex] += gasto;
+      }
+
+      // Profit calculation: completed income - all expenses
+      if (isCompleted) {
+        response.utilidad.data[labelIndex] += ingreso;
+      }
+      if (isNotPlanning) {
+        response.utilidad.data[labelIndex] -= gasto;
+      }
+
+      // Track pending income separately
+      if (isPending) {
         response.ingresos.total.Pendiente.data[labelIndex] += ingreso;
       }
     }
@@ -345,6 +375,7 @@ const processFinancialData = (rawData, period, dateRange, labels) => {
 
   // Calculate summary
   response.summary.totalIngresos = parseFloat(totalIngresos.toFixed(2));
+  response.summary.totalIngresosPendientes = parseFloat(totalIngresosPendientes.toFixed(2));
   response.summary.totalGastos = parseFloat(totalGastos.toFixed(2));
   response.summary.utilidad = parseFloat((totalIngresos - totalGastos).toFixed(2));
   response.summary.utilidadPorcentaje = totalIngresos > 0
@@ -393,19 +424,22 @@ const processFinancialData = (rawData, period, dateRange, labels) => {
   if (period === "year" || period === "quarter") {
     const monthlyGastos = {};
     rawData.forEach((row) => {
-      const date = new Date(row.fechaSalida);
-      const mes = date.getMonth() + 1;
-      const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-        "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+      // Include all orders that are not in planning status (O, C, PC)
+      if (row.estado !== "P") {
+        const date = new Date(row.fechaSalida);
+        const mes = date.getMonth() + 1;
+        const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+          "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
-      if (!monthlyGastos[mes]) {
-        monthlyGastos[mes] = {
-          mes,
-          nombreMes: monthNames[mes - 1],
-          GastoTotal: 0,
-        };
+        if (!monthlyGastos[mes]) {
+          monthlyGastos[mes] = {
+            mes,
+            nombreMes: monthNames[mes - 1],
+            GastoTotal: 0,
+          };
+        }
+        monthlyGastos[mes].GastoTotal += parseFloat(row.gastoTotal) || 0;
       }
-      monthlyGastos[mes].GastoTotal += parseFloat(row.gastoTotal) || 0;
     });
 
     response.gastos.detallado = Object.values(monthlyGastos).map(item => ({

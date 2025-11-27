@@ -36,7 +36,7 @@ RIGHT JOIN (
     GROUP BY MONTH(c.fechaSalida)
 ) AS t2 ON t1.Mes = t2.Mes
 GROUP BY COALESCE(t1.Mes, t2.Mes)
-ORDER BY Mes;
+ORDER BY Mes
 
     `;
 

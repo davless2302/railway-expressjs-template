@@ -97,7 +97,7 @@ router.get("/Drivers", DriversController.getDrivers);
 router.get("/financialData", FinancialDataController.getFinancialData);
 
 // Legacy Financial Data endpoint
-router.get("/FinancialData", DataController.getFinancialData);
+router.get("/FinancialDatas", DataController.getFinancialData);
 
 // Routers - Images - Public //
 
